@@ -1,0 +1,120 @@
+import pyttsx3
+import datetime
+import speech_recognition as sr
+import wikipedia
+import webbrowser
+import os.path # required to fetch the contents from the specified folder/directory
+import wolframalpha
+import json
+import requests
+
+engine = pyttsx3.init('sapi5')
+voices = engine.getProperty('voices')
+engine.setProperty('voice',voices[1].id) # 0 --> male voice  1 --> Female voice
+
+def wishMe():
+    hour = int(datetime.datetime.now().hour)
+    if hour>=0 and hour<12:
+        speak('Good Morning')
+    elif hour>=12 and hour<18:
+        speak('Good Afternoon')
+    else:
+        speak('Good Evening')
+
+
+def speak(text):
+    engine.say(text)
+    engine.runAndWait()
+
+def takeCommand():
+    # it takes microphone input from the user and returns the string output
+    r = sr.Recognizer()
+    with sr.Microphone() as source:
+        r.adjust_for_ambient_noise(source)
+        print('Listening....')
+        r.pause_threshold = 1
+        user_audio = r.listen(source)
+    try:
+        print('Recognizing User Input...')
+        # using google for voice recognition
+        query = r.recognize_google(user_audio,language='en-in')
+        print(f"User Said : {query}\n")
+    except Exception as e:
+        #print(e) # use only if you want to print error
+        print('Say that again please...')
+        return "None"
+    return query
+    
+if __name__ == '__main__':
+    wishMe()
+    speak('Hello Sir , I am Sophia your personal voice assistant, please tell me how i can help you')
+    while True:
+        query = takeCommand().lower()
+
+        if 'wikipedia' in query: 
+            speak('Searching Wikipedia')
+            query = query.replace('wikipedia','')
+            query = query.replace(' ','_')
+            results = wikipedia.summary(query,sentences=1)
+            print(results)
+            speak(results)
+
+        elif 'open youtube' in query:
+            webbrowser.register('chrome',None,webbrowser.BackgroundBrowser('C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe'))
+            webbrowser.get('chrome').open('https://www.youtube.com/')
+
+        elif 'open google' in query:
+            webbrowser.register('chrome',None,webbrowser.BackgroundBrowser('C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe'))
+            webbrowser.get('chrome').open('https://www.google.com/')
+
+        elif 'search' in query:
+            query = query.replace('search ','')
+            query = query.replace(' ','+')
+            webbrowser.register('chrome',None,webbrowser.BackgroundBrowser('C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe'))
+            webbrowser.get('chrome').open('https://www.google.com/search?q='+query)
+
+        elif 'play music' in query:
+            speak('playing music from your playlist')
+            music_dir = 'C:\\Personal_Voice_Assistant\\songs'
+            songs = os.listdir(music_dir)
+            os.startfile(os.path.join(music_dir,songs[0]))
+
+        elif 'time' in query:
+            ctime = datetime.datetime.now().strftime('%H:%M:%S')
+            speak(f'Sir the time is {ctime}')
+
+        elif 'ask questions' in query:
+            speak('I can answer to computational and geographical questions what question do you want to ask now')
+            question = takeCommand()
+            app_id = 'PASTE YOUR APP_ID'
+            # create an instance of Client Class
+            client = wolframalpha.Client(app_id)
+            res = client.query(question)
+            for i in res.results:
+                print(i.text)
+                speak(i.text)
+
+        elif 'weather' in query:
+            api_key = '6b7fc25b50353175efa48e2f9f7d1bdf'
+            base_url = 'https://api.openweathermap.org/data/2.5/weather?'
+            speak('which city weather should i tell you')
+            city_name = takeCommand()
+            city_name = city_name.replace(' ','%20')
+            complete_url = base_url+'q='+city_name+'&appid='+api_key
+            response = requests.get(complete_url)
+            x = response.json()
+            if x["cod"]!="404":
+                y=x["main"]
+                current_temperature = y["temp"]
+                current_temperature = int(current_temperature - 273.15)
+                print(current_temperature)
+                city_name = city_name.replace('%20',' ')
+                speak('Temprature in '+city_name+' is '+str(current_temperature)+' degree celsius')
+            
+          
+        elif 'exit' in query:
+            speak('Bye Bye , i am signing out, Good day to you')
+            quit()
+                  
+            
+    
